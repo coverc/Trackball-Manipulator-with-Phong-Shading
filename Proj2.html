@@ -1,0 +1,134 @@
+<!DOCTYPE html>
+<html>
+
+
+<script id="vertex-shader" type="x-shader/x-vertex">
+attribute  vec4 vPosition;
+attribute  vec3 vNormal;
+varying vec4 fColor;
+
+uniform vec4 ambientProduct, diffuseProduct, specularProduct;
+uniform mat4 modelViewMatrix;
+uniform mat4 projectionMatrix;
+uniform vec4 lightPosition;
+uniform float shininess;
+
+uniform vec4 rotate;
+
+vec4 multq(vec4 a, vec4 b) {
+    return(vec4(a.x*b.x - dot(a.yzw, b.yzw), a.x*b.yzw+b.x*a.yzw+cross(b.yzw, a.yzw)));
+    }
+
+vec4 invq(vec4 a) {
+    return(vec4(a.x, -a.yzw)/dot(a,a));
+}
+void main()
+{
+
+    vec4 p = vec4(0.0, vPosition.xyz);
+    p = multq(rotate, multq(p, invq(rotate)));
+
+    vec4 position = vec4(p.yzw,1.0);
+
+    vec4 p2 = vec4(0.0, vNormal.xyz);
+    p2 = multq(rotate, multq(p2, invq(rotate)));
+
+    vec4 positionnormal = vec4(p2.yzw,1.0);
+
+
+    vec3 pos = -(modelViewMatrix * position).xyz;
+
+    //fixed light postion
+
+    vec3 light = lightPosition.xyz;
+    vec3 L = normalize( light - pos );
+
+
+    vec3 E = normalize( -pos );
+    vec3 H = normalize( L + E );
+
+    // Transform vertex normal into eye coordinates
+
+    vec3 N = normalize(mat3 (modelViewMatrix)*positionnormal.xyz);
+
+    // Compute terms in the illumination equation
+    vec4 ambient = ambientProduct;
+
+    float Kd = max( dot(L, N), 0.0 );
+    vec4  diffuse = Kd*diffuseProduct;
+
+    float Ks = pow( max(dot(N, H), 0.0), shininess );
+    vec4  specular = Ks * specularProduct;
+
+    if( dot(L, N) < 0.0 ) {
+	specular = vec4(0.0, 0.0, 0.0, 1.0);
+    }
+
+    gl_Position = projectionMatrix * modelViewMatrix * position;
+    fColor = ambient + diffuse +specular;
+
+    fColor.a = 1.0;
+}
+</script>
+
+<script id="fragment-shader" type="x-shader/x-fragment">
+
+precision mediump float;
+
+
+varying vec4 fColor;
+
+void
+main()
+{
+    gl_FragColor = fColor;
+}
+</script>
+
+<script type="text/javascript" src="include/webgl-utils.js"></script>
+<script type="text/javascript" src="include/initShaders.js"></script>
+<script type="text/javascript" src="include/MV.js"></script>
+<script type="text/javascript" src="vertices.js"></script>
+<script type="text/javascript" src="patches.js"></script>
+<script type="text/javascript" src="createTeapotData.js"></script>
+<script type="text/javascript" src="Proj2.js"></script>
+
+<body>
+<canvas id="gl-canvas" width="512" height="512">
+    Oops ... your browser doesn't support the HTML5 canvas element
+</canvas>
+<div>
+    <div style="max-width: 512px;">
+        <div>
+            <b>Light Source Position</b>
+            <div class="slider-conatiner">
+                X:<input type="range" min="-500" max="500" value="-300" class="slider" id="lightX"><br>
+                Y:<input type="range" min="-500" max="500" value="-200" class="slider" id="lightY"><br>
+                Z:<input type="range" min="-500" max="500" value="-200" class="slider" id="lightZ"><br>
+            </div>
+        </div>
+        <div>
+            <b>Diffuse Reflectivity Constants</b>
+            <div class="slider-conatiner">
+                Red:<input type="range" min="0" max="500" value="100" class="slider" id="Rdiff"><br>
+                Green:<input type="range" min="0" max="500" value="100" class="slider" id="Gdiff"><br>
+                Blue:<input type="range" min="0" max="500" value="100" class="slider" id="Bdiff"><br>
+            </div>
+        </div>
+        <div>
+            <b>Specular Reflectivity Constants</b>
+            <div class="slider-conatiner">
+                Red:<input type="range" min="0" max="500" value="100" class="slider" id="Rspec"><br>
+                Green:<input type="range" min="0" max="500" value="100" class="slider" id="Gspec"><br>
+                Blue:<input type="range" min="0" max="500" value="100" class="slider" id="Bspec"><br>
+            </div>
+        </div>
+        <div>
+            <div class="slider-conatiner">
+                <b>Shininess</b>:<input type="range" min="-100" max="0" value="-50" class="slider" id="shininessslider">
+            </div>
+        </div>
+    </div>
+</div>
+</body>
+</html>
